@@ -1399,12 +1399,20 @@ int sqlwcharcmp(SQLWCHAR *s1, SQLWCHAR *s2, int n)
 }
 
 
+const char* PrintServerVersion(SQLHDBC Conn, BOOL onlyReturn)
+{
+  static char ServerVersion[32];
+  SQLGetInfo(Conn, SQL_DBMS_VER, (SQLPOINTER)ServerVersion, sizeof(ServerVersion), NULL);
+  if (!onlyReturn)
+  {
+    diag(ServerVersion);
+  }
+  return ServerVersion;
+}
 BOOL ServerNotOlderThan(SQLHDBC Conn, unsigned int major, unsigned int minor, unsigned int patch)
 {
   unsigned int ServerMajor= 0, ServerMinor= 0, ServerPatch= 0;
-  SQLCHAR ServerVersion[32];
-
-  SQLGetInfo(Conn, SQL_DBMS_VER, ServerVersion, sizeof(ServerVersion), NULL);
+  const char *ServerVersion= PrintServerVersion(Conn, TRUE);
 
   sscanf((const char*)ServerVersion, "%u.%u.%u", &ServerMajor, &ServerMinor, &ServerPatch);
 

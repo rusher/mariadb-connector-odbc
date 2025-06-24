@@ -722,18 +722,29 @@ ODBC_TEST(t_bug15773)
 ODBC_TEST(t_bug9927)
 {
   SQLCHAR col[10];
+  SQLRETURN rc;
 
   OK_SIMPLE_STMT(Stmt, "DROP TABLE IF EXISTS t_bug9927");
-  OK_SIMPLE_STMT(Stmt, IsMysql ? "CREATE TABLE t_bug9927 (a TIMESTAMP,"
-                                 "b TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)" :
-                        "CREATE TABLE t_bug9927 (a TIMESTAMP DEFAULT 0,"
-                        "b TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)");
+  OK_SIMPLE_STMT(Stmt, "CREATE TABLE t_bug9927 (a TIMESTAMP DEFAULT '2022-02-24 05:00:00',"
+                       "b TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)");
 
   /* Not sure which exactly version that was introduced, but 10.11.2 is first ga */
-  CHECK_STMT_RC(Stmt, SQLSpecialColumns(Stmt,SQL_ROWVER,  NULL, 0,
+  CHECK_STMT_RC(Stmt, SQLSpecialColumns(Stmt, SQL_ROWVER, NULL, 0,
                                    NULL, 0, (SQLCHAR *)"t_bug9927", SQL_NTS,
-                                   0, ServerNotOlderThan(Connection, 10,10,2) || IsMysql ? SQL_NULLABLE : SQL_NO_NULLS));
-  CHECK_STMT_RC(Stmt, SQLFetch(Stmt));
+                                   0, (ServerNotOlderThan(Connection, 10,10,2) || IsMysql) ? SQL_NULLABLE : SQL_NO_NULLS));
+  rc= SQLFetch(Stmt);
+  if (rc == SQL_NO_DATA)
+  {
+    diag("Server: %s, Older than 10.10.2: %d, Nullable: %d", PrintServerVersion(Connection, TRUE),
+      ServerNotOlderThan(Connection, 10,10,2),
+      (ServerNotOlderThan(Connection, 10, 10, 2) || IsMysql) ? SQL_NULLABLE : SQL_NO_NULLS);
+    CHECK_STMT_RC(Stmt, SQLFreeStmt(Stmt, SQL_CLOSE));
+    OK_SIMPLE_STMT(Stmt, "SELECT DATA_TYPE,TABLE_SCHEMA,TABLE_SCHEMA=DATABASE(),IS_NULLABLE,EXTRA,EXTRA LIKE '%%CURRENT_TIMESTAMP%%' "
+                         "FROM INFORMATION_SCHEMA.COLUMNS WHERE TABLE_NAME='t_bug9927'");
+    my_print_non_format_result(Stmt);
+    FAIL_IF(TRUE, "SQLSpecialColumns returned no rows")
+  }
+  CHECK_STMT_RC(Stmt, rc);
 
   IS_STR(my_fetch_str(Stmt, col, 2), "b", 1);
 
