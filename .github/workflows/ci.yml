@@ -101,10 +101,9 @@ jobs:
         if: startsWith(matrix.os, 'windows')
         shell: powershell
         run: |
-          pwd
-          ls -lrt .
-          ls -lrt ..
-          ls -lrt ../wininstall
+          dir .
+          dir ..
+          dir ../wininstall
           Get-ChildItem -Path ${{ github.workspace }}\wininstall\mariadb-connector-odbc-*.msi
           foreach ($msi in Get-ChildItem -Path .\wininstall\mariadb-connector-odbc-*.msi) {
             Start-Process msiexec.exe -ArgumentList "/i $($msi.FullName) /qn /norestart" -Wait
