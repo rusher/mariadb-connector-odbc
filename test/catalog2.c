@@ -1883,7 +1883,7 @@ ODBC_TEST(odbc361)
  * Besides other catalog functions are affected - not only SQLStatistics
  * The problem arose when application reads (db or) table name with SQLTables, and it has original letter cases,
  * but then if to use it as the parameter to (catalog or) table argument for various catalog functions, the server compares
- * it to lowercase values of (db or) table name, and it failed(since ordinary argument comparison has to be cace-sensitive.
+ * it to lowercase values of (db or) table name, and it failed(since ordinary argument comparison has to be case-sensitive.
  * The test basically makes sure, that this works
  */
 ODBC_TEST(odbc391)
@@ -1940,8 +1940,9 @@ ODBC_TEST(odbc391)
   EXPECT_STMT(Stmt, SQLFetch(Stmt), SQL_NO_DATA);
   CHECK_STMT_RC(Stmt, SQLFreeStmt(Stmt, SQL_CLOSE));
 
-  CHECK_STMT_RC(Stmt, SQLSpecialColumns(Stmt, SQL_ROWVER,  dbname, (SQLSMALLINT)dbnameLen, NULL, 0, tname, (SQLSMALLINT)tnameLen,
-                                        SQL_SCOPE_TRANSACTION, SQL_NULLABLE));
+  CHECK_STMT_RC(Stmt, SQLSpecialColumns(Stmt, SQL_ROWVER,  dbname, (SQLSMALLINT)dbnameLen, NULL, 0,
+    tname, (SQLSMALLINT)tnameLen, SQL_SCOPE_TRANSACTION,
+    ServerNotOlderThan(Connection, 10, 10, 2) || IsMysql ? SQL_NULLABLE : SQL_NO_NULLS));
   CHECK_STMT_RC(Stmt, SQLFetch(Stmt));
   EXPECT_STMT(Stmt, SQLFetch(Stmt), SQL_NO_DATA);
   CHECK_STMT_RC(Stmt, SQLFreeStmt(Stmt, SQL_CLOSE));
